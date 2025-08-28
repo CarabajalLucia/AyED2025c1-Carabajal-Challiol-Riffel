@@ -63,6 +63,9 @@ class ListaDoblementeEnlazada:
             raise IndexError("lista vacia")
         if posicion is None:
             posicion = self.tamanio -1
+        if posicion < 0:
+            posicion = self.tamanio + posicion
+
         if posicion < 0 or posicion > self.tamanio:
             raise IndexError("Posición fuera de rango")
         if posicion == 0:
@@ -72,7 +75,7 @@ class ListaDoblementeEnlazada:
                 self.cabeza.anterior = None
             else:
                 self.cola = None
-        if posicion == self.tamanio -1:
+        elif posicion == self.tamanio -1:
             dato=self.cola.dato
             self.cola = self.cola.anterior
             if self.cola:
@@ -83,11 +86,11 @@ class ListaDoblementeEnlazada:
             actual = self.cabeza
             for i in range(posicion):
                 actual = actual.siguiente
-                dato = actual.dato
-                anterior = actual.anterior
-                siguiente = actual.siguiente
-                anterior.siguiente = siguiente
-                siguiente.anterior = anterior
+            dato = actual.dato
+            anterior = actual.anterior
+            siguiente = actual.siguiente
+            anterior.siguiente = siguiente
+            siguiente.anterior = anterior
         self.tamanio -= 1
         return dato
     
@@ -103,21 +106,71 @@ class ListaDoblementeEnlazada:
         actual = self.cabeza
         self.cabeza, self.cola = self.cola , self.cabeza 
         while actual:
-            actual.anterio ,actual.siguiente =actual.siguiente , actual.anterior 
+            actual.anterior ,actual.siguiente =actual.siguiente , actual.anterior 
             actual = actual.anterior
         return self
-    def concatenar (self, Otralista):
-        if Otralista.esta_vacia():
-            return 0
-        if self.esta_vacia ():
-            self.cabeza=Otralista.cabeza 
-            self.cola=Otralista.cola
-        else:
-            self.cola.siguiente=Otralista.cola
-            Otralista.cabeza.anterior=self.cola
-            self.cola=Otralista.cola
-        self.tamanio+=Otralista.tamanio
-        return self
-     
-        
     
+    def concatenar(self, otralista):
+        if otralista.esta_vacia():
+            return self
+
+        actual = otralista.cabeza
+        while actual:
+            self.insertar(actual.dato)
+            actual = actual.siguiente
+
+        return self
+
+    def __len__(self):
+        return self.tamanio
+    
+    def __add__(self, otralista):
+        nueva = self.copiar()
+        nueva.concatenar(otralista.copiar())
+        return nueva 
+    
+    def __iter__(self):
+        actual = self.cabeza
+        for i in range(self.tamanio):
+            yield actual.dato
+            actual = actual.siguiente
+
+#graficas
+import matplotlib.pyplot as plt
+import numpy as np
+
+n = np.arange(1, 101)  # de 1 a 100 elementos
+
+len_op = np.ones_like(n)  # O(1)
+copiar_op = n             # O(n)
+invertir_op = n         # O(n)
+
+plt.plot(n, len_op, label="len() O(1)")
+plt.plot(n, copiar_op, label="copiar() O(n)")
+plt.plot(n, invertir_op, label="invertir() O(n)", linestyle="--")
+
+plt.xlabel("Tamaño de la lista (n)")
+plt.ylabel("Tiempo relativo")
+plt.title("Complejidad temporal de operaciones")
+plt.legend()
+plt.grid(True)
+plt.show()
+ 
+#explicar resultados y orden de complejidad 
+
+#pruebas
+"""lista = ListaDoblementeEnlazada()
+lista.agregar_al_inicio(10)
+lista.agregar_al_inicio("listaa")
+
+lista.agregar_al_inicio(11)
+print(list(lista))
+
+lista2 = ListaDoblementeEnlazada()
+lista2.agregar_al_inicio(55)
+print(list(lista2))
+lista3 = lista.concatenar(lista2)
+print(list(lista3))
+print(list(lista))
+
+"""

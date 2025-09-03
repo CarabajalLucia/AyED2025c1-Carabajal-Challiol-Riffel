@@ -4,7 +4,7 @@ Created on Thu Sep  1 14:00:21 2022
 @author: Catedra de Algoritmos y Estructura de Datos
 """
 
-from modules.modulo1 import ListaDoblementeEnlazada
+from modules.lista_doblemente import ListaDoblementeEnlazada
 import unittest
 import random
 

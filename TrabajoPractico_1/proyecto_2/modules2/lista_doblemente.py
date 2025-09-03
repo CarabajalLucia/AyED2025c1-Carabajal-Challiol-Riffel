@@ -135,28 +135,11 @@ class ListaDoblementeEnlazada:
             yield actual.dato
             actual = actual.siguiente
 
-#graficas
-import matplotlib.pyplot as plt
-import numpy as np
 
-n = np.arange(1, 101)  # de 1 a 100 elementos
 
-len_op = np.ones_like(n)  # O(1)
-copiar_op = n             # O(n)
-invertir_op = n         # O(n)
 
-plt.plot(n, len_op, label="len() O(1)")
-plt.plot(n, copiar_op, label="copiar() O(n)")
-plt.plot(n, invertir_op, label="invertir() O(n)", linestyle="--")
-
-plt.xlabel("Tamaño de la lista (n)")
-plt.ylabel("Tiempo relativo")
-plt.title("Complejidad temporal de operaciones")
-plt.legend()
-plt.grid(True)
-plt.show()
  
-#explicar resultados y orden de complejidad 
+#falta explicar resultados y orden de complejidad 
 
 #pruebas
 """lista = ListaDoblementeEnlazada()

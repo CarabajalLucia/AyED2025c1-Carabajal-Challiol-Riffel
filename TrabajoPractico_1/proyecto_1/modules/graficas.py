@@ -37,9 +37,9 @@ for n in tamanios:
     tiempos_invertir.append(medir_tiempo_invertir(lista))
 
     # Gráfica
-plt.plot(tamanios, tiempos_len, label="len(lista)")
-plt.plot(tamanios, tiempos_copiar, label="copiar()")
-plt.plot(tamanios, tiempos_invertir, label="invertir()")
+plt.plot(tamanios, tiempos_len, label="len(lista) O(1)")
+plt.plot(tamanios, tiempos_copiar, label="copiar() O(n)")
+plt.plot(tamanios, tiempos_invertir, label="invertir() O(n)")
 plt.xlabel("Tamaño de la lista (n)")
 plt.ylabel("Tiempo (segundos)")
 plt.title("Tiempo real de ejecución de operaciones")

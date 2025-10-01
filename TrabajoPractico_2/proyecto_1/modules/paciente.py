@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from random import randint, choices
+import datetime
 
 nombres = ['Leandro', 'Mariela', 'Gastón', 'Andrea', 'Antonio', 'Estela', 'Jorge', 'Agustina']
 apellidos = ['Perez', 'Colman', 'Rodriguez', 'Juarez', 'García', 'Belgrano', 'Mendez', 'Lopez']
@@ -17,6 +18,7 @@ class Paciente:
         self.__apellido = apellidos[randint(0, n-1)]
         self.__riesgo = choices(niveles_de_riesgo, probabilidades)[0]
         self.__descripcion = descripciones_de_riesgo[self.__riesgo-1]
+        self.__hora_ingreso = datetime.datetime.now().timestamp()
 
     def get_nombre(self):
         return self.__nombre
@@ -29,6 +31,9 @@ class Paciente:
     
     def get_descripcion_riesgo(self):
         return self.__descripcion
+    
+    def get_hora_ingreso(self):
+        return self.__hora_ingreso
     
     def __str__(self):
         cad = self.__nombre + ' '

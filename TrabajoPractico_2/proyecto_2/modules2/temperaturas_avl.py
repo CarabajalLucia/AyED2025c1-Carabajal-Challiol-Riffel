@@ -1,248 +1,138 @@
-from modules2.AVL import NodoAVL
-from datetime import datetime
+from modules2.AVL import AVL                
+import matplotlib.pyplot as plt             
+import networkx as nx                       
 
-class Temperaturas_DB:
+class Temperaturas_DB(AVL):                
     def __init__(self):
-        # Nodo raíz del árbol AVL (inicialmente vacío)
-        self.raiz = None
-        # Contador de cuántas mediciones hay en la base de datos
-        self._cantidad = 0
+        super().__init__()                  # Llama al constructor de la clase padre para inicializar self.raiz
+        self._cantidad = 0                  # lleva la cuenta de cuantos datos se cargaron
 
-    # FUNCIONES AUXILIARES 
-    def _altura(self, nodo):
-        if nodo:
-            return nodo.altura
-        else:
-            return 0
-
-    def _actualizar_altura_y_extremos(self, nodo):
-        if not nodo:
-            return
-        
-        # Altura = 1 + altura máxima de sus hijos
-        altura_izq = self._altura(nodo.izquierdo)
-        altura_der = self._altura(nodo.derecho)
-        nodo.altura = 1 + max(altura_izq, altura_der)
-
-        # Recolecta temperaturas relevantes del nodo y sus hijos
-        valores = [nodo.temperatura]
-        if nodo.izquierdo:
-            valores.append(nodo.izquierdo.min_subarbol)
-            valores.append(nodo.izquierdo.max_subarbol)
-        if nodo.derecho:
-            valores.append(nodo.derecho.min_subarbol)
-            valores.append(nodo.derecho.max_subarbol)
-
-        # Asigna los valores mínimo y máximo al nodo
-        nodo.min_subarbol = min(valores)
-        nodo.max_subarbol = max(valores)
-
-    def _balance(self, nodo):
-        if not nodo:
-            return 0
-        altura_izq = self._altura(nodo.izquierdo)
-        altura_der = self._altura(nodo.derecho)
-        return altura_izq - altura_der
-
-    # ROTACIONES AVL 
-    def _rotacion_derecha(self, y):
-        x = y.izquierdo
-        T2 = x.derecho
-
-        # Rotación
-        x.derecho = y
-        y.izquierdo = T2
-
-        # Actualizamos altura y extremos
-        self._actualizar_altura_y_extremos(y)
-        self._actualizar_altura_y_extremos(x)
-
-        return x
-
-    def _rotacion_izquierda(self, x):
-        y = x.derecho
-        T2 = y.izquierdo
-
-        # Rotación
-        y.izquierdo = x
-        x.derecho = T2
-
-        # Actualizamos altura y extremos
-        self._actualizar_altura_y_extremos(x)
-        self._actualizar_altura_y_extremos(y)
-
-        return y
-
-    #  INSERCIÓN 
+    # Funciones principales
     def guardar_temperatura(self, temperatura, fecha):
-        self.raiz = self._insertar(self.raiz, temperatura, fecha)
-        self._cantidad += 1
-
-    def _insertar(self, nodo, temperatura, fecha):
-        fecha_dt = datetime.strptime(fecha, "%d/%m/%Y")
-
-        if not nodo:
-            return NodoAVL(temperatura, fecha)
-
-        if fecha_dt < nodo.fecha:
-            nodo.izquierdo = self._insertar(nodo.izquierdo, temperatura, fecha)
-        elif fecha_dt > nodo.fecha:
-            nodo.derecho = self._insertar(nodo.derecho, temperatura, fecha)
+        if self.devolver_temperatura(fecha) is None:
+            # Si no existe la fecha, inserta y aumenta el contador
+            self.raiz = self._insertar(self.raiz, temperatura, fecha)
+            self._cantidad += 1
         else:
-            nodo.temperatura = temperatura
-            return nodo
+            # Si ya existe, actualiza la temperatura
+            self.raiz = self._insertar(self.raiz, temperatura, fecha)
 
-        self._actualizar_altura_y_extremos(nodo)
-        balance = self._balance(nodo)
-
-        # Rebalanceo
-        if balance > 1 and fecha_dt < nodo.izquierdo.fecha:
-            return self._rotacion_derecha(nodo)
-
-        if balance < -1 and fecha_dt > nodo.derecho.fecha:
-            return self._rotacion_izquierda(nodo)
-
-        if balance > 1 and fecha_dt > nodo.izquierdo.fecha:
-            nodo.izquierdo = self._rotacion_izquierda(nodo.izquierdo)
-            return self._rotacion_derecha(nodo)
-
-        if balance < -1 and fecha_dt < nodo.derecho.fecha:
-            nodo.derecho = self._rotacion_derecha(nodo.derecho)
-            return self._rotacion_izquierda(nodo)
-
-        return nodo
-
-    #  BÚSQUEDA 
     def devolver_temperatura(self, fecha):
-        fecha_dt = datetime.strptime(fecha, "%d/%m/%Y")
-        nodo = self.raiz
-
+        # devuelve la temperatura en la fecha indicada
+        fecha_dt = self._separar_fecha(fecha)  # con la funcion del avl convierte de strings a datetime la fecha
+        nodo = self.raiz                       # empieza por la raiza
         while nodo:
-            if fecha_dt < nodo.fecha:
+            if fecha_dt < nodo.fecha:         # cuando la fecha buscada es menor, va al subárbol izquierdo
                 nodo = nodo.izquierdo
-            elif fecha_dt > nodo.fecha:
+            elif fecha_dt > nodo.fecha:       # si es mayor, va al subárbol derecho
                 nodo = nodo.derecho
             else:
-                return nodo.temperatura
+                return nodo.temperatura       # cuando encuentra la fecha, devuelve la temperatura
+        return None                            # si no la encuentra da None
 
-        return None
+    def borrar_temperatura(self, fecha):
+        # borra la temperatura en esa fecha (si existe), y le saca uno al contador
+        if self.devolver_temperatura(fecha) is not None:
+            self.raiz = self._borrar(self.raiz, self._separar_fecha(fecha))
+            self._cantidad -= 1
 
-    #  MÁXIMO Y MÍNIMO EN RANGO 
-    def max_temp_rango(self, fecha1, fecha2):
-        f1 = datetime.strptime(fecha1, "%d/%m/%Y")
-        f2 = datetime.strptime(fecha2, "%d/%m/%Y")
-        return self._max_en_rango(self.raiz, f1, f2)
+    def cantidad_muestras(self):
+        # da la cantidad de muestras cargadas
+        return self._cantidad
 
-    def _max_en_rango(self, nodo, f1, f2):
+    # temepraturas en rangos
+    def _extremo_en_rango(self, nodo, f1, f2, tipo):
         if not nodo:
-            return float('-inf')
+            return float('-inf') if tipo == "max" else float('inf')
 
         if nodo.fecha < f1:
-            return self._max_en_rango(nodo.derecho, f1, f2)
-
+            # si la fecha del nodo es menor que el rango, todo el subárbol izquierdo se descarta y va a la derecha
+            return self._extremo_en_rango(nodo.derecho, f1, f2, tipo)
         if nodo.fecha > f2:
-            return self._max_en_rango(nodo.izquierdo, f1, f2)
+            # si la fecha del nodo es mayor que el rango, todo el subárbol derecho se descarta y va a la izquierda
+            return self._extremo_en_rango(nodo.izquierdo, f1, f2, tipo)
 
-        max_izq = self._max_en_rango(nodo.izquierdo, f1, f2)
-        max_der = self._max_en_rango(nodo.derecho, f1, f2)
-        return max(nodo.temperatura, max_izq, max_der)
+        # si la fecha del nodo está entre el rango, se miran los dos subarboles y se compra con el nodo
+        izq = self._extremo_en_rango(nodo.izquierdo, f1, f2, tipo)
+        der = self._extremo_en_rango(nodo.derecho, f1, f2, tipo)
+        # si tipo == "max" devuelve el máximo entre el nodo y los resultados de subárboles, si no el mínimo
+        return max(nodo.temperatura, izq, der) if tipo == "max" else min(nodo.temperatura, izq, der)
 
-    def min_temp_rango(self, fecha1, fecha2):
-        f1 = datetime.strptime(fecha1, "%d/%m/%Y")
-        f2 = datetime.strptime(fecha2, "%d/%m/%Y")
-        return self._min_en_rango(self.raiz, f1, f2)
+    def max_temp_rango(self, f1, f2):
+        return self._extremo_en_rango(self.raiz, self._separar_fecha(f1), self._separar_fecha(f2), "max")
 
-    def _min_en_rango(self, nodo, f1, f2):
-        if not nodo:
-            return float('inf')
+    def min_temp_rango(self, f1, f2):
+        return self._extremo_en_rango(self.raiz, self._separar_fecha(f1), self._separar_fecha(f2), "min")
 
-        if nodo.fecha < f1:
-            return self._min_en_rango(nodo.derecho, f1, f2)
-
-        if nodo.fecha > f2:
-            return self._min_en_rango(nodo.izquierdo, f1, f2)
-
-        min_izq = self._min_en_rango(nodo.izquierdo, f1, f2)
-        min_der = self._min_en_rango(nodo.derecho, f1, f2)
-        return min(nodo.temperatura, min_izq, min_der)
-
-    def temp_extremos_rango(self, fecha1, fecha2):
-        min_temp = self.min_temp_rango(fecha1, fecha2)
-        max_temp = self.max_temp_rango(fecha1, fecha2)
-        return (min_temp, max_temp)
-
-    #  LISTAR TEMPERATURAS EN RANGO 
-    def devolver_temperaturas(self, fecha1, fecha2):
-        f1 = datetime.strptime(fecha1, "%d/%m/%Y")
-        f2 = datetime.strptime(fecha2, "%d/%m/%Y")
-        resultado = []
-        self._listar_en_rango(self.raiz, f1, f2, resultado)
-        return resultado
+    def devolver_temperaturas(self, f1, f2):
+        # Devuelve una lista de las temperaturas en el rango indicado
+        f1, f2 = self._separar_fecha(f1), self._separar_fecha(f2)  # convierte strings a datetime
+        lista = []
+        self._listar_en_rango(self.raiz, f1, f2, lista)             # va completando la lista
+        return lista
 
     def _listar_en_rango(self, nodo, f1, f2, lista):
+        # recorre el arbol y agrega a la lista las fechas que esten el el rango indicado
         if not nodo:
             return
-
         if nodo.fecha > f1:
+            # recorre solo a la izquierda si hay nodos mayores a f1
             self._listar_en_rango(nodo.izquierdo, f1, f2, lista)
-
         if f1 <= nodo.fecha <= f2:
-            fecha_str = nodo.fecha.strftime("%d/%m/%Y")
-            lista.append(f"{fecha_str}: {nodo.temperatura} ºC")
-
+            # si el nodo esta en el rango, lo pasa nuevamente a string y lo agrega a la lista
+            lista.append(f"{nodo.fecha.strftime('%d/%m/%Y')}: {nodo.temperatura} ºC")
         if nodo.fecha < f2:
+            # recorre solo derecha si hay nodos menores a f2
             self._listar_en_rango(nodo.derecho, f1, f2, lista)
 
-    # ELIMINACIÓN
-    def borrar_temperatura(self, fecha):
-        fecha_dt = datetime.strptime(fecha, "%d/%m/%Y")
-        self.raiz = self._borrar(self.raiz, fecha_dt)
-        self._cantidad -= 1
+    # Carga de archivo
+    def cargar_archivo(self, ruta_archivo):
+        # abre el archivo y por cada linea de fecha llama a guardar temperatura
+        with open(ruta_archivo, "r", encoding="utf-8") as archivo:
+            for linea in archivo:
+                linea = linea.strip()            
+                if not linea:
+                    continue                     
+                fecha_str, temp_str = linea.split(";")   
+                self.guardar_temperatura(float(temp_str), fecha_str)  # carga la muestra
 
-    def _borrar(self, nodo, fecha_dt):
+    # grafica del árbol
+    def graficar_arbol(self):
+        # Dibuja el árbol usando networkx para la estructura y matplotlib para mostrarlo
+        if not self.raiz:
+            print("El árbol está vacío.")
+            return
+
+        G = nx.DiGraph()                         # Grafo dirigido para representar padre->hijo
+        self._agregar_nodos_edges(self.raiz, G)  # Rellena el grafo con nodos y aristas
+        pos = self._generar_posiciones(self.raiz) # Genera posiciones x,y para cada nodo
+        # crea etiquetas con fecha y temperatura para mostrar en cada nodo
+        etiquetas = {n: f"{n.fecha.strftime('%d/%m/%Y')}\n{n.temperatura}°C" for n in G.nodes()}
+
+        plt.figure(figsize=(10, 6))              # Crea la figura
+        # Dibuja el grafico
+        nx.draw(G, pos, with_labels=True, labels=etiquetas, node_size=1600,
+                node_color="skyblue", font_size=8, font_weight="bold", arrows=False)
+        plt.title("Árbol AVL de Temperaturas", fontsize=12, fontweight="bold")
+        plt.show()                               # Muestra la figura en pantalla
+
+    def _agregar_nodos_edges(self, nodo, G):
         if not nodo:
-            return None
+            return
+        G.add_node(nodo)                          
+        if nodo.izquierdo:
+            G.add_edge(nodo, nodo.izquierdo)     
+            self._agregar_nodos_edges(nodo.izquierdo, G)  
+        if nodo.derecho:
+            G.add_edge(nodo, nodo.derecho)      
+            self._agregar_nodos_edges(nodo.derecho, G)    #
 
-        if fecha_dt < nodo.fecha:
-            nodo.izquierdo = self._borrar(nodo.izquierdo, fecha_dt)
-        elif fecha_dt > nodo.fecha:
-            nodo.derecho = self._borrar(nodo.derecho, fecha_dt)
-        else:
-            # Nodo con uno o ningún hijo
-            if not nodo.izquierdo:
-                return nodo.derecho
-            if not nodo.derecho:
-                return nodo.izquierdo
-
-            # Nodo con dos hijos
-            temp = nodo.derecho
-            while temp.izquierdo:
-                temp = temp.izquierdo
-
-            nodo.temperatura = temp.temperatura
-            nodo.fecha = temp.fecha
-            nodo.derecho = self._borrar(nodo.derecho, temp.fecha)
-
-        self._actualizar_altura_y_extremos(nodo)
-        balance = self._balance(nodo)
-
-        # Rebalanceo después de eliminación
-        if balance > 1 and self._balance(nodo.izquierdo) >= 0:
-            return self._rotacion_derecha(nodo)
-
-        if balance > 1 and self._balance(nodo.izquierdo) < 0:
-            nodo.izquierdo = self._rotacion_izquierda(nodo.izquierdo)
-            return self._rotacion_derecha(nodo)
-
-        if balance < -1 and self._balance(nodo.derecho) <= 0:
-            return self._rotacion_izquierda(nodo)
-
-        if balance < -1 and self._balance(nodo.derecho) > 0:
-            nodo.derecho = self._rotacion_derecha(nodo.derecho)
-            return self._rotacion_izquierda(nodo)
-
-        return nodo
-
-    # CANTIDAD DE MUESTRAS 
-    def cantidad_muestras(self):
-        return self._cantidad
+    def _generar_posiciones(self, nodo, x=0, y=0, dx=1.0, pos=None): 
+        if pos is None:
+            pos = {}
+        pos[nodo] = (x, -y)                      
+        if nodo.izquierdo:
+            self._generar_posiciones(nodo.izquierdo, x - dx, y + 1, dx / 1.8, pos)
+        if nodo.derecho:
+            self._generar_posiciones(nodo.derecho, x + dx, y + 1, dx / 1.8, pos)
+        return pos                             
